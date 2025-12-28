@@ -1,92 +1,124 @@
-#include "SMAAnalyzer.h"
+#include <iostream>
+using namespace std;
 
-SMAAnalyzer::SMAAnalyzer(double* priceData, int size, int window) {
-    dataSize = size;
-    windowSize = window;
+class SMAAnalyzer
+{
+private:
+    double* prices;
+    int dataSize;
+    int windowSize;
 
-    if (windowSize > dataSize) {
-        windowSize = dataSize;
+public:
+    // Constructor
+    SMAAnalyzer(double priceData[], int size, int window)
+    {
+        dataSize = size;
+        windowSize = window;
+
+        if (windowSize > dataSize)
+        {
+            windowSize = dataSize;
+        }
+
+        prices = new double[dataSize];
+
+        for (int i = 0; i < dataSize; i++)
+        {
+            prices[i] = priceData[i];
+        }
     }
 
-    prices = new double[dataSize];
-    for (int i = 0; i < dataSize; i++) {
-        prices[i] = priceData[i];
-    }
-}
-
-SMAAnalyzer::~SMAAnalyzer() {
-    delete[] prices;
-}
-
-double SMAAnalyzer::calculateAverage(int start, int end) {
-    if (start < 0 || end > dataSize || start >= end) {
-        return 0.0;
+    // Destructor
+    ~SMAAnalyzer()
+    {
+        delete[] prices;
     }
 
-    double sum = 0.0;
-    int count = 0;
+    // Calculate average
+    double calculateAverage(int start, int end)
+    {
+        if (start < 0 || end > dataSize || start >= end)
+        {
+            return 0.0;
+        }
 
-    for (int i = start; i < end; i++) {
-        sum += prices[i];
-        count++;
+        double sum = 0.0;
+
+        for (int i = start; i < end; i++)
+        {
+            sum = sum + prices[i];
+        }
+
+        return sum / (end - start);
     }
 
-    return count > 0 ? sum / count : 0.0;
-}
-
-double SMAAnalyzer::calculateSMA() {
-    if (dataSize < windowSize) {
-        return calculateAverage(0, dataSize);
+    // Calculate SMA
+    double calculateSMA()
+    {
+        int startIndex = dataSize - windowSize;
+        return calculateAverage(startIndex, dataSize);
     }
 
-    int startIndex = dataSize - windowSize;
-    return calculateAverage(startIndex, dataSize);
-}
+    // Calculate variance
+    double calculateVariance()
+    {
+        double mean = calculateSMA();
+        double sum = 0.0;
 
-double SMAAnalyzer::calculateVariance() {
-    double mean = calculateSMA();
-    double sumSquaredDiff = 0.0;
-    int count = 0;
+        int startIndex = dataSize - windowSize;
 
-    int startIndex = dataSize >= windowSize ? dataSize - windowSize : 0;
+        for (int i = startIndex; i < dataSize; i++)
+        {
+            double diff = prices[i] - mean;
+            sum = sum + diff * diff;
+        }
 
-    for (int i = startIndex; i < dataSize; i++) {
-        double diff = prices[i] - mean;
-        sumSquaredDiff += diff * diff;
-        count++;
+        return sum / windowSize;
     }
 
-    return count > 0 ? sumSquaredDiff / count : 0.0;
-}
-
-double SMAAnalyzer::calculateVolatility() {
-    double variance = calculateVariance();
-
-    // Simple square root calculation without cmath
-    double result = 0.0;
-    if (variance > 0.0) {
-        double x = variance;
-        double guess = variance / 2.0;
+    // Square root without cmath
+    double squareRoot(double x)
+    {
+        double guess = x / 2.0;
         double epsilon = 0.00001;
 
-        while ((guess * guess - x) > epsilon || (x - guess * guess) > epsilon) {
+        while ((guess * guess - x) > epsilon || (x - guess * guess) > epsilon)
+        {
             guess = (guess + x / guess) / 2.0;
         }
-        result = guess;
+
+        return guess;
     }
 
-    double sma = calculateSMA();
-    if (sma > 0) {
-        result = (result / sma) * 100.0;
+    // Calculate volatility
+    double calculateVolatility()
+    {
+        double variance = calculateVariance();
+        double stdDev = squareRoot(variance);
+        double sma = calculateSMA();
+
+        return (stdDev / sma) * 100.0;
     }
 
-    return result;
-}
+    // Print result
+    void printAnalysis()
+    {
+        cout << "=== SMA Analysis ===" << endl;
+        cout << "Data Size: " << dataSize << endl;
+        cout << "Window Size: " << windowSize << endl;
+        cout << "SMA: " << calculateSMA() << endl;
+        cout << "Volatility: " << calculateVolatility() << "%" << endl;
+    }
+};
 
-void SMAAnalyzer::printAnalysis() {
-    std::cout << "=== SMA Analysis ===" << std::endl;
-    std::cout << "Data Size: " << dataSize << std::endl;
-    std::cout << "Window Size: " << windowSize << std::endl;
-    std::cout << "SMA: " << calculateSMA() << std::endl;
-    std::cout << "Volatility: " << calculateVolatility() << "%" << std::endl;
+int main()
+{
+    double data[] = {100, 102, 101, 105, 110};
+    int size = 5;
+    int window = 3;
+
+    SMAAnalyzer analyzer(data, size, window);
+    analyzer.printAnalysis();
+
+    return 0;
 }
